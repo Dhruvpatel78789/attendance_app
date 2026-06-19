@@ -98,10 +98,7 @@ class Timestamp implements Comparable<Timestamp> {
 // ── MONGO DATABASE MANAGER via REST API ───────────────────────────────────────
 class MongoDBService {
   static String get baseUrl {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5050/api';
-    }
-    return 'http://localhost:5050/api';
+    return 'https://attendanceapp-backend.onrender.com/api';
   }
 
   static final StreamController<String> _dbUpdates = StreamController<String>.broadcast();
