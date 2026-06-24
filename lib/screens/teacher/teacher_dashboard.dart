@@ -200,26 +200,47 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) return const SizedBox();
                           
-                          final todayStr = DateTime.now().toString().split(' ')[0];
+                          final now = DateTime.now();
+                          final today = DateTime(now.year, now.month, now.day);
                           bool isStanding = false;
                           final currentUser = FirebaseAuth.instance.currentUser;
                           final userEmail = currentUser?.email ?? '';
                           final userUid = currentUser?.uid ?? '';
                           
+                          debugPrint("Standing Principal Check: userEmail=$userEmail, userUid=$userUid, delegationsTotal=${snapshot.data!.docs.length}");
+                          
                           for (var doc in snapshot.data!.docs) {
                             final data = doc.data() as Map<String, dynamic>;
                             final email = data['teacherEmail'] ?? '';
                             final uid = data['teacherUid'] ?? '';
-                            final start = data['startDate'] ?? '';
-                            final end = data['endDate'] ?? '';
+                            final startStr = data['startDate'] ?? '';
+                            final endStr = data['endDate'] ?? '';
+                            
+                            debugPrint("  - Checking delegation: name=${data['teacherName']}, dbEmail=$email, dbUid=$uid, start=$startStr, end=$endStr");
                             
                             final matchesEmail = (email.isNotEmpty && email.toLowerCase() == userEmail.toLowerCase());
                             final matchesUid = (email.isNotEmpty && email == userUid) || (uid.isNotEmpty && uid == userUid);
                             
                             if (matchesEmail || matchesUid) {
-                              if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
-                                isStanding = true;
-                                break;
+                              final startParts = startStr.split('-');
+                              final endParts = endStr.split('-');
+                              if (startParts.length == 3 && endParts.length == 3) {
+                                final start = DateTime(
+                                  int.parse(startParts[0]),
+                                  int.parse(startParts[1]),
+                                  int.parse(startParts[2]),
+                                );
+                                final end = DateTime(
+                                  int.parse(endParts[0]),
+                                  int.parse(endParts[1]),
+                                  int.parse(endParts[2]),
+                                );
+                                if ((today.isAfter(start) || today.isAtSameMomentAs(start)) &&
+                                    (today.isBefore(end) || today.isAtSameMomentAs(end))) {
+                                  isStanding = true;
+                                  debugPrint("    -> ACTIVE DELEGATION MATCH FOUND!");
+                                  break;
+                                }
                               }
                             }
                           }
@@ -312,7 +333,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) return const SizedBox();
                           
-                          final todayStr = DateTime.now().toString().split(' ')[0];
+                          final now = DateTime.now();
+                          final today = DateTime(now.year, now.month, now.day);
                           bool isStanding = false;
                           final currentUser = FirebaseAuth.instance.currentUser;
                           final userEmail = currentUser?.email ?? '';
@@ -322,16 +344,31 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                             final data = doc.data() as Map<String, dynamic>;
                             final email = data['teacherEmail'] ?? '';
                             final uid = data['teacherUid'] ?? '';
-                            final start = data['startDate'] ?? '';
-                            final end = data['endDate'] ?? '';
+                            final startStr = data['startDate'] ?? '';
+                            final endStr = data['endDate'] ?? '';
                             
                             final matchesEmail = (email.isNotEmpty && email.toLowerCase() == userEmail.toLowerCase());
                             final matchesUid = (email.isNotEmpty && email == userUid) || (uid.isNotEmpty && uid == userUid);
                             
                             if (matchesEmail || matchesUid) {
-                              if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
-                                isStanding = true;
-                                break;
+                              final startParts = startStr.split('-');
+                              final endParts = endStr.split('-');
+                              if (startParts.length == 3 && endParts.length == 3) {
+                                final start = DateTime(
+                                  int.parse(startParts[0]),
+                                  int.parse(startParts[1]),
+                                  int.parse(startParts[2]),
+                                );
+                                final end = DateTime(
+                                  int.parse(endParts[0]),
+                                  int.parse(endParts[1]),
+                                  int.parse(endParts[2]),
+                                );
+                                if ((today.isAfter(start) || today.isAtSameMomentAs(start)) &&
+                                    (today.isBefore(end) || today.isAtSameMomentAs(end))) {
+                                  isStanding = true;
+                                  break;
+                                }
                               }
                             }
                           }
