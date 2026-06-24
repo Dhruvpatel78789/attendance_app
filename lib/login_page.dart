@@ -75,6 +75,21 @@ class _LoginPageState extends State<LoginPage>
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
 
+  String _cleanError(dynamic e) {
+    final str = e.toString();
+    if (str.contains('SocketException') ||
+        str.contains('Failed host lookup') ||
+        str.contains('ClientException') ||
+        str.contains('NetworkImage') ||
+        str.contains('HandshakeException')) {
+      return 'Unable to connect to the server. Please check your internet connection and try again.';
+    }
+    if (str.contains('Connection refused') || str.contains('Connection timed out')) {
+      return 'Server is currently unreachable. Please try again later.';
+    }
+    return str;
+  }
+
   Future<void> _loginWithEmail() async {
     setState(() { _loading = true; _error = ''; });
     try {
@@ -86,7 +101,7 @@ class _LoginPageState extends State<LoginPage>
     } on FirebaseAuthException catch (e) {
       if (mounted) setState(() => _error = e.message ?? 'Login failed');
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = _cleanError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -128,7 +143,7 @@ class _LoginPageState extends State<LoginPage>
         setState(() => _error = e.message ?? 'Login failed');
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = _cleanError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
