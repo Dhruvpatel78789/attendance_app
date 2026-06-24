@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -12,6 +13,34 @@ const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://bloomfieldllp_db_use
 const DB_NAME = process.env.DB_NAME || 'attendance_db';
 
 let db;
+
+function hashPassword(password) {
+  if (!password) return '';
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+function ensureHashedPassword(data) {
+  if (data && data.password && !/^[a-f0-9]{64}$/i.test(data.password)) {
+    data.password = hashPassword(data.password);
+  }
+}
+
+async function migrateExistingPasswords() {
+  try {
+    const usersColl = db.collection('users');
+    const cursor = usersColl.find({});
+    while (await cursor.hasNext()) {
+      const user = await cursor.next();
+      if (user.password && !/^[a-f0-9]{64}$/i.test(user.password)) {
+        const hashed = hashPassword(user.password);
+        await usersColl.updateOne({ _id: user._id }, { $set: { password: hashed } });
+        console.log(`Migrated password for user: ${user.email}`);
+      }
+    }
+  } catch (err) {
+    console.error('Password migration error:', err);
+  }
+}
 
 app.use(cors());
 app.use(express.json());
@@ -108,7 +137,7 @@ app.post('/api/auth/register', async (req, res) => {
     await usersColl.insertOne({
       _id: uid,
       email,
-      password,
+      password: hashPassword(password),
       role: userRole,
       schoolId: schoolId || null,
       createdAt: new Date()
@@ -127,7 +156,7 @@ app.post('/api/auth/login', async (req, res) => {
     const usersColl = db.collection('users');
     const user = await usersColl.findOne({ email });
     if (!user) return res.status(400).json({ error: 'User not found' });
-    if (user.password !== password) return res.status(400).json({ error: 'Wrong password' });
+    if (user.password !== hashPassword(password)) return res.status(400).json({ error: 'Wrong password' });
 
     const token = jwt.sign({ sub: user._id, role: user.role || 'teacher' }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, uid: user._id, user });
@@ -182,6 +211,10 @@ app.post('/api/documents/:collection/:id', async (req, res) => {
       }
     }
 
+    if (collection === 'users') {
+      ensureHashedPassword(data);
+    }
+
     data._id = id;
     if (data.createdAt && typeof data.createdAt === 'string') data.createdAt = new Date(data.createdAt);
     if (data.dob && typeof data.dob === 'string') data.dob = new Date(data.dob);
@@ -205,6 +238,9 @@ app.put('/api/documents/:collection/:id', async (req, res) => {
       const $set = { ...updatePayload.$set };
       if ($set.createdAt && typeof $set.createdAt === 'string') $set.createdAt = new Date($set.createdAt);
       if ($set.dob && typeof $set.dob === 'string') $set.dob = new Date($set.dob);
+      if (collection === 'users') {
+        ensureHashedPassword($set);
+      }
       finalUpdate.$set = $set;
     }
     if (updatePayload.$unset) {
@@ -230,9 +266,13 @@ app.delete('/api/documents/:collection/:id', async (req, res) => {
 
 // Start server after connecting to MongoDB
 MongoClient.connect(MONGO_URI)
-  .then(client => {
+  .then(async client => {
     db = client.db(DB_NAME);
     console.log(`Connected to MongoDB database: ${DB_NAME}`);
+    
+    // Migrate plain-text passwords to SHA-256 hashes
+    await migrateExistingPasswords();
+
     app.listen(PORT, () => {
       console.log(`API Server running on port ${PORT}`);
     });
