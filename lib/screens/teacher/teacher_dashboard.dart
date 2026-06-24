@@ -190,7 +190,88 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         ]),
                       ),
 
-                      const SizedBox(height: 26),
+                      const SizedBox(height: 20),
+
+                      // ── Standing Principal Status Banner ──
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('standing_principals')
+                            .where('teacherEmail', isEqualTo: FirebaseAuth.instance.currentUser?.email)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) return const SizedBox();
+                          
+                          final todayStr = DateTime.now().toString().split(' ')[0];
+                          bool isStanding = false;
+                          
+                          for (var doc in snapshot.data!.docs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final start = data['startDate'] ?? '';
+                            final end = data['endDate'] ?? '';
+                            if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
+                              isStanding = true;
+                              break;
+                            }
+                          }
+                          
+                          if (!isStanding) return const SizedBox();
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFDF2E9), // Light warm peach/terra
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFD67845), width: 1.5), // Terra border
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFD67845).withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.gavel_rounded,
+                                      color: Color(0xFFD67845),
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "Standing Principal Active",
+                                          style: TextStyle(
+                                            fontFamily: 'Georgia',
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF6E432E), // WC.brown
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          "You have been delegated principal authorities for today. You can now view and manage all student/teacher leave applications.",
+                                          style: TextStyle(
+                                            color: const Color(0xFF9E7153), // WC.brownLight
+                                            fontSize: 12,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
 
                       // ── Quick actions ─────────────────────────
                       WarliSectionTitle(title: "QUICK ACTIONS"),
