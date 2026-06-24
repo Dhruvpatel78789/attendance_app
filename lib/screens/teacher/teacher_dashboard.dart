@@ -196,21 +196,31 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('standing_principals')
-                            .where('teacherEmail', isEqualTo: FirebaseAuth.instance.currentUser?.email)
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) return const SizedBox();
                           
                           final todayStr = DateTime.now().toString().split(' ')[0];
                           bool isStanding = false;
+                          final currentUser = FirebaseAuth.instance.currentUser;
+                          final userEmail = currentUser?.email ?? '';
+                          final userUid = currentUser?.uid ?? '';
                           
                           for (var doc in snapshot.data!.docs) {
                             final data = doc.data() as Map<String, dynamic>;
+                            final email = data['teacherEmail'] ?? '';
+                            final uid = data['teacherUid'] ?? '';
                             final start = data['startDate'] ?? '';
                             final end = data['endDate'] ?? '';
-                            if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
-                              isStanding = true;
-                              break;
+                            
+                            final matchesEmail = (email.isNotEmpty && email.toLowerCase() == userEmail.toLowerCase());
+                            final matchesUid = (email.isNotEmpty && email == userUid) || (uid.isNotEmpty && uid == userUid);
+                            
+                            if (matchesEmail || matchesUid) {
+                              if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
+                                isStanding = true;
+                                break;
+                              }
                             }
                           }
                           
@@ -298,21 +308,31 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('standing_principals')
-                            .where('teacherEmail', isEqualTo: FirebaseAuth.instance.currentUser?.email)
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) return const SizedBox();
                           
                           final todayStr = DateTime.now().toString().split(' ')[0];
                           bool isStanding = false;
+                          final currentUser = FirebaseAuth.instance.currentUser;
+                          final userEmail = currentUser?.email ?? '';
+                          final userUid = currentUser?.uid ?? '';
                           
                           for (var doc in snapshot.data!.docs) {
                             final data = doc.data() as Map<String, dynamic>;
+                            final email = data['teacherEmail'] ?? '';
+                            final uid = data['teacherUid'] ?? '';
                             final start = data['startDate'] ?? '';
                             final end = data['endDate'] ?? '';
-                            if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
-                              isStanding = true;
-                              break;
+                            
+                            final matchesEmail = (email.isNotEmpty && email.toLowerCase() == userEmail.toLowerCase());
+                            final matchesUid = (email.isNotEmpty && email == userUid) || (uid.isNotEmpty && uid == userUid);
+                            
+                            if (matchesEmail || matchesUid) {
+                              if (todayStr.compareTo(start) >= 0 && todayStr.compareTo(end) <= 0) {
+                                isStanding = true;
+                                break;
+                              }
                             }
                           }
                           

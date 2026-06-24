@@ -10,8 +10,9 @@ class AssignStandingPrincipalPage extends StatefulWidget {
 }
 
 class _AssignStandingPrincipalPageState extends State<AssignStandingPrincipalPage> {
-  String? selectedTeacherEmail;
+  String? selectedTeacherEmail; // Stores UID
   String? selectedTeacherName;
+  String? selectedTeacherActualEmail;
   DateTimeRange? selectedRange;
   bool loading = false;
 
@@ -49,7 +50,8 @@ class _AssignStandingPrincipalPageState extends State<AssignStandingPrincipalPag
 
     try {
       await FirebaseFirestore.instance.collection('standing_principals').add({
-        'teacherEmail': selectedTeacherEmail,
+        'teacherEmail': selectedTeacherActualEmail ?? selectedTeacherEmail,
+        'teacherUid': selectedTeacherEmail,
         'teacherName': selectedTeacherName,
         'startDate': startStr,
         'endDate': endStr,
@@ -60,6 +62,7 @@ class _AssignStandingPrincipalPageState extends State<AssignStandingPrincipalPag
       setState(() {
         selectedTeacherEmail = null;
         selectedTeacherName = null;
+        selectedTeacherActualEmail = null;
         selectedRange = null;
       });
     } catch (e) {
@@ -133,9 +136,11 @@ class _AssignStandingPrincipalPageState extends State<AssignStandingPrincipalPag
                                 onChanged: (String? email) {
                                   if (email != null) {
                                     final teacherDoc = teachers.firstWhere((doc) => doc.id == email);
+                                    final data = teacherDoc.data() as Map<String, dynamic>;
                                     setState(() {
                                       selectedTeacherEmail = email;
-                                      selectedTeacherName = (teacherDoc.data() as Map<String, dynamic>)['name'] ?? 'Teacher';
+                                      selectedTeacherName = data['name'] ?? 'Teacher';
+                                      selectedTeacherActualEmail = data['email'] ?? '';
                                     });
                                   }
                                 },
